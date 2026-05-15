@@ -521,49 +521,54 @@ function ProfileScreen({ customer, onLogout }) {
 
 // ─── ROOT APP ───────────────────────────────────────────────────────────────
 export default function App() {
-  const [customer, setCustomer] = useState(null);
+  const [customer, setCustomer] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('sweafex_customer');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
   const [trips, setTrips] = useState([]);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [nav, setNav] = useState('shipments');
   const [loadingTrips, setLoadingTrips] = useState(false);
 
-  const handleLogin = async (cust) => {
-    setCustomer(cust);
+  useEffect(() => {
+    if (!customer) return;
     setLoadingTrips(true);
-    try {
-      const data = await apiFetch(`/api/trips?customerId=${encodeURIComponent(cust.id)}`);
-      setTrips(data);
-    } catch (e) {
-      setTrips([]);
-    } finally {
-      setLoadingTrips(false);
-    }
+    apiFetch(`/api/trips?customerId=${encodeURIComponent(customer.id)}`)
+      .then(setTrips)
+      .catch(() => setTrips([]))
+      .finally(() => setLoadingTrips(false));
+  }, [customer]);
+
+  const handleLogin = (cust) => {
+    try { sessionStorage.setItem('sweafex_customer', JSON.stringify(cust)); } catch {}
+    setCustomer(cust);
   };
 
-  const handleSelectTrip = (trip) => { setSelectedTrip(trip); };
-  const handleBack = () => setSelectedTrip(null);
+  const handleLogout = () => {
+    try { sessionStorage.removeItem('sweafex_customer'); } catch {}
+    setCustomer(null);
+    setTrips([]);
+    setSelectedTrip(null);
+  };
 
   if (!customer) return <LoginScreen onLogin={handleLogin} />;
-
-  if (selectedTrip) {
-    return <TripDetailScreen trip={selectedTrip} onBack={handleBack} />;
-  }
-
-  if (loadingTrips) {
-    return (
-      <div className="app" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <span className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
-      </div>
-    );
-  }
+  if (selectedTrip) return <TripDetailScreen trip={selectedTrip} onBack={() => setSelectedTrip(null)} />;
+  if (loadingTrips) return (
+    <div className="app" style={{ alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
+      <span className="spinner" style={{ width:32, height:32, borderWidth:3 }} />
+    </div>
+  );
 
   return (
     <DashboardScreen
       customer={customer}
       trips={trips}
-      onSelectTrip={handleSelectTrip}
+      onSelectTrip={setSelectedTrip}
       nav={nav}
       onNavChange={setNav}
+      onLogout={handleLogout}
     />
   );
 }
