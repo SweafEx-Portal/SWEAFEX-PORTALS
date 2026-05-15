@@ -26,10 +26,11 @@ async function apiPost(path, body) {
 // ─── LOGO ───────────────────────────────────────────────────────────────────
 function Logo({ size = 16 }) {
   return (
-    <div className="logo">
-      <span className="logo-o" style={{ fontSize: size }}>Sweaf</span>
-      <span className="logo-w" style={{ fontSize: size }}>Ex</span>
-    </div>
+    <img
+      src="/logo.png"
+      alt="SweafEx"
+      style={{ height: size * 1.8, objectFit: 'contain' }}
+    />
   );
 }
 
